@@ -2,23 +2,25 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"fmt"
+	"log"
 	"os"
-	"time"
 
 	"github.com/urfave/cli"
+	"golang.org/x/net/context"
+	"googlemaps.github.io/maps"
 )
 
 type weatherResponse struct {
-	Weather []weather `json:"weather"`
+	TimeZoneOffset	int		`json:"offset"`
+	Currently		currently	`json:"currently"`
 }
 
-type weather struct {
-	Main        string `json:"main"`
-	Description string `json:"description"`
+type currently struct {
+	Summary			string		`json:"summary"`
+	Temperature		float64		`json:"temperature"`
 }
 
 func main() {
@@ -46,40 +48,44 @@ func main() {
 }
 
 func handleWeatherAction(places string) error{
-	openWeatherUriTemplate := "http://api.openweathermap.org/data/2.5/weather?q="+ places +"&units=metric&appid=e07b609b458eecd57dc0cad0fdb9aa9b"
+	googleGeoLocationKey := "AIzaSyB_Nib5oe_wIKljESFzNLnPFx2SLa2fCHo"
 
-	weatherClient := http.Client{
-		Timeout: time.Second * 10, // maximum 10 seconds to timeout
-	}
-
-	req, err := http.NewRequest(http.MethodGet, openWeatherUriTemplate, nil)
+	c,err := maps.NewClient(maps.WithAPIKey(googleGeoLocationKey))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("fatal error on creating map client. error : %s", err)
 	}
+	r := &maps.GeocodingRequest{
+		Address: places,
+	}
+	geoResult, err := c.Geocode(context.Background(),r)
+	lat := geoResult[0].Geometry.Location.Lat
+	lng := geoResult[0].Geometry.Location.Lng
+	fmt.Printf("result : %v, %v \n", lat, lng)
 
-	res, err := weatherClient.Do(req)
+	weatherApiUrlTemplate := "https://api.darksky.net/forecast/%s/%f,%f?exclude=hourly&lang=%s&units=%s"
+	apiKey := "8783cc8f39ddbbd37ecc97ea0c958e0d"
+	lang := "tr"
+	units := "si"
+
+	weatherApiUrl := fmt.Sprintf(weatherApiUrlTemplate, apiKey, lat, lng, lang, units)
+	fmt.Println(weatherApiUrl)
+
+	response, err := http.Get(weatherApiUrl)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("res code " + res.Status)
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+		fmt.Printf("The HTTP request failed with error %s\n", err)
+		return err
+    } 
+	
+	data, _ := ioutil.ReadAll(response.Body)
 
 	weatherResponse := weatherResponse{}
-	err = json.Unmarshal(body, &weatherResponse)
+	err = json.Unmarshal(data, &weatherResponse)
 	if err != nil {
 		log.Fatal(err)
+		return err
 	}
 
-	for index := 0; index < len(weatherResponse.Weather); index++ {
-		fmt.Println(weatherResponse.Weather[index].Main + " - " + weatherResponse.Weather[0].Description)	
-	}
-
-	fmt.Println(openWeatherUriTemplate)
+	fmt.Println("summary :" + weatherResponse.Currently.Summary)
 
 	return nil
 }
