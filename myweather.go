@@ -7,6 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+
+	"github.com/olekukonko/tablewriter"
 
 	"github.com/urfave/cli"
 	"golang.org/x/net/context"
@@ -36,6 +39,7 @@ type dailyData struct {
 	TemperatureLow    float64 `json:"temperatureLow"`
 	PrecipType        string  `json:"precipType"`
 	PrecipProbability float64 `json:"precipProbability"`
+	Icon              string  `json:"icon"`
 }
 
 func main() {
@@ -101,27 +105,27 @@ func handleWeatherAction(places string) error {
 		return err
 	}
 
-	fmt.Printf("Currently \nSummary\t\t: %s\nTemperature\t: %f°C\n",
-		weatherResponse.Currently.Summary,
-		weatherResponse.Currently.Temperature)
-
 	fmt.Println("Here is weekly result.")
 	fmt.Printf("Summary: %s\n\n", weatherResponse.Daily.Summary)
 
-	counter := 0
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"day", "icon", "precip-type", "precip-probability", "tempature", "summary"})
+	table.SetRowLine(true)
+
 	for _, dailyData := range weatherResponse.Daily.Data {
-		fmt.Println(counter)
-
-		fmt.Printf("Summary: %s\nTemperature Low \t: %f°C\nTemperature High \t: %f°C\nPrecipType \t\t: %s\nPrecipProbability \t: %f\n",
-			dailyData.Summary,
-			dailyData.TemperatureLow,
-			dailyData.TemperatureHigh,
-			dailyData.PrecipType,
-			dailyData.PrecipProbability*100)
-		fmt.Println("==================")
-
-		counter++
+		tableItem := []string{"", dailyData.Icon, dailyData.PrecipType, formatPercentage(dailyData.PrecipProbability), formatTempature(dailyData.TemperatureLow), dailyData.Summary}
+		table.Append(tableItem)
 	}
 
+	table.Render()
+
 	return nil
+}
+
+func formatTempature(f float64) string {
+	return strconv.FormatFloat(f, 'f', 0, 64) + " °C"
+}
+
+func formatPercentage(f float64) string {
+	return strconv.FormatFloat(f*100, 'f', 1, 64) + " %"
 }
