@@ -78,7 +78,7 @@ func handleWeatherAction(places string) error {
 	fmt.Printf("result : %s --> %v, %v \n", geoResult[0].FormattedAddress, lat, lng)
 	fmt.Printf("Here is the weather for %s \n", geoResult[0].FormattedAddress)
 
-	weatherApiUrlTemplate := "https://api.darksky.net/forecast/%s/%f,%f?exclude=hourly&lang=%s&units=%s"
+	weatherApiUrlTemplate := "https://api.darksky.net/forecast/%s/%f,%f?exclude=hourly,currently&lang=%s&units=%s"
 	apiKey := "8783cc8f39ddbbd37ecc97ea0c958e0d"
 	lang := "tr"
 	units := "si"
