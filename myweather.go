@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 
 	"github.com/urfave/cli"
@@ -79,8 +80,6 @@ func handleWeatherAction(places string) error {
 	geoResult, err := c.Geocode(context.Background(), r)
 	lat := geoResult[0].Geometry.Location.Lat
 	lng := geoResult[0].Geometry.Location.Lng
-	fmt.Printf("result : %s --> %v, %v \n", geoResult[0].FormattedAddress, lat, lng)
-	fmt.Printf("Here is the weather for %s \n", geoResult[0].FormattedAddress)
 
 	weatherApiUrlTemplate := "https://api.darksky.net/forecast/%s/%f,%f?exclude=hourly,currently&lang=%s&units=%s"
 	apiKey := "8783cc8f39ddbbd37ecc97ea0c958e0d"
@@ -105,11 +104,13 @@ func handleWeatherAction(places string) error {
 		return err
 	}
 
-	fmt.Println("Here is weekly result.")
-	fmt.Printf("Summary: %s\n\n", weatherResponse.Daily.Summary)
+	color.Set(color.FgRed, color.Bold)
+	fmt.Printf("%s\n\n", weatherResponse.Daily.Summary)
+	color.Unset()
 
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"day", "precip-type", "precip-probability", "tempature", "summary"})
+	table.SetHeaderColor(tablewriter.Colors{tablewriter.Bold}, tablewriter.Colors{tablewriter.Bold}, tablewriter.Colors{tablewriter.Bold}, tablewriter.Colors{tablewriter.Bold}, tablewriter.Colors{tablewriter.Bold})
 	table.SetRowLine(true)
 
 	for _, dailyData := range weatherResponse.Daily.Data {
