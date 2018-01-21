@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 
@@ -33,13 +34,12 @@ type daily struct {
 }
 
 type dailyData struct {
-	Time              int     `json:"time"`
+	Time              int64   `json:"time"`
 	Summary           string  `json:"summary"`
 	TemperatureHigh   float64 `json:"temperatureHigh"`
 	TemperatureLow    float64 `json:"temperatureLow"`
 	PrecipType        string  `json:"precipType"`
 	PrecipProbability float64 `json:"precipProbability"`
-	Icon              string  `json:"icon"`
 }
 
 func main() {
@@ -109,16 +109,19 @@ func handleWeatherAction(places string) error {
 	fmt.Printf("Summary: %s\n\n", weatherResponse.Daily.Summary)
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"day", "icon", "precip-type", "precip-probability", "tempature", "summary"})
+	table.SetHeader([]string{"day", "precip-type", "precip-probability", "tempature", "summary"})
 	table.SetRowLine(true)
 
 	for _, dailyData := range weatherResponse.Daily.Data {
-		tableItem := []string{"", dailyData.Icon, dailyData.PrecipType, formatPercentage(dailyData.PrecipProbability), formatTempature(dailyData.TemperatureLow), dailyData.Summary}
+		timeForDay := time.Unix(dailyData.Time, 0)
+		day := timeForDay.Format("Monday")
+		probability := formatPercentage(dailyData.PrecipProbability)
+		tempature := formatTempature(dailyData.TemperatureLow)
+
+		tableItem := []string{day, dailyData.PrecipType, probability, tempature, dailyData.Summary}
 		table.Append(tableItem)
 	}
-
 	table.Render()
-
 	return nil
 }
 
